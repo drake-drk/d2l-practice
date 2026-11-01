@@ -1,0 +1,1740 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Machine learning\n",
+    "\n",
+    "## Practice Task 2. Exploratory Data Analysis and Linear Regression\n",
+    "\n",
+    "### General information\n",
+    "Date of issue: \n",
+    "\n",
+    "Soft deadline: \n",
+    "\n",
+    "Hard Deadline: "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### About the job\n",
+    "In this task, we will try to learn how to analyze data and select useful features from them. We'll also learn how to use ``seaborn`` and ``sklearn``, while also getting used to the basic concepts of machine learning.\n",
+    "\n",
+    "### Evaluation and Penalties\n",
+    "Each of the tasks has a certain \"cost\" (indicated in parentheses near the task). The maximum allowable grade for a job is 10 points. The reviewer has the right to lower the grade for ineffective implementation or sloppy schedules.\n",
+    "\n",
+    "**Please note** that each section of the homework has grading problems and questions. Questions complement the objectives and aim to interpret or justify what is happening. The code without interpretation does not make sense, therefore it is obligatory to answer the questions - for the absence of answers, we will reduce the points for the tasks. If you answer the questions, but do not write the correct code for the corresponding graded problems, then no points will be awarded for that.\n",
+    "\n",
+    "You cannot hand over the task after the specified deadline. If an incomplete point is given for a task due to errors, at the discretion of the examiner, it is possible to correct the work on the conditions specified in the response letter.\n",
+    "\n",
+    "The task is carried out independently. \"Similar\" solutions are considered plagiarism and all involved students (including those who were cheated) cannot receive more than 0 points for it (for more information on plagiarism, see the course page). If you have found a solution to some of the tasks (or part of it) in an open source, you must provide a link to this source in a separate block at the end of your work (most likely you will not be the only one who found this, therefore, in order to exclude suspicion of plagiarism, a link to the source is required).\n",
+    "\n",
+    "### Change format\n",
+    "Tasks are submitted through the EDUFPMI-portal in the assignments section.  You must send a notebook with a completed assignment. Name the notebook itself in the format homework-practice-02-linregr-Username.ipynb, where Username is your last name.\n",
+    "\n",
+    "For the convenience of checking, independently calculate your maximum score (based on the set of solved problems) and indicate below.\n",
+    "\n",
+    "Rating: xx. \n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "This notebook uses the ``folium`` library to render maps. She works for google colab! "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2020-09-26T16:46:41.323933Z",
+     "start_time": "2020-09-26T16:46:38.248043Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "!pip install folium"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2020-09-26T16:54:29.903693Z",
+     "start_time": "2020-09-26T16:54:29.891068Z"
+    },
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "import folium\n",
+    "\n",
+    "m = folium.Map(location=(53.9000000, 27.5666700), zoom_start=12)\n",
+    "\n",
+    "m"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "If you did everything correctly, then a map of Minsk should open above. ."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "*Find the coordinates of the place of your study and show on the map*"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "m = folium.Map(location=(53.865000000, 27.5666700), zoom_start=16)\n",
+    "\n",
+    "m"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Note**: ╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ - the place for your code and/or your answers (this smile is from http://lenny.club/magic/)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2020-09-26T16:48:20.566549Z",
+     "start_time": "2020-09-26T16:48:19.893995Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "\n",
+    "%matplotlib inline\n",
+    "\n",
+    "sns.set(style=\"darkgrid\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Part 0. Preparation (1 point) "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 1 (1 point)**. We will be working with data from the competition [New York City Taxi Trip Duration](https://www.kaggle.com/c/nyc-taxi-trip-duration/overview), in which it was necessary to predict the duration of a taxi trip. Download the training sample from this competition and upload it:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2020-09-26T17:03:41.260445Z",
+     "start_time": "2020-09-26T17:03:37.878813Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "\n",
+    "train_data = pd.read_csv('train.csv')\n",
+    "test_data = pd.read_csv('test.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "test_data.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "test_data.columns"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Notice the ``pickup_datetime`` and ``dropoff_datetime columns``. The columm ``dropoff_datetime`` was added by the organizers only to the training set, that is, this column cannot be used, let's remove it. The ``pickup_datetime`` contains the date and time of the start of the trip. To make it convenient to work with it, let's convert dates to ``datetime`` objects. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data.drop('dropoff_datetime',\n",
+    "  axis='columns', inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data['pickup_datetime'] =  pd.to_datetime(train_data['pickup_datetime'])\n",
+    "test_data['pickup_datetime'] =  pd.to_datetime(test_data['pickup_datetime'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "type(train_data.pickup_datetime[1])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The ``trip_duration`` column contains the target value that we want to predict. Let's take a look at the distribution of the target in the training set. To do this, draw its histogram: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "sns.distplot(train_data['trip_duration'], kde=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: *What can be said about the target variable from the histogram of its values*?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data['trip_duration'].quantile([0.25,0.5,0.75,0.99, 1])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sns.distplot(train_data.trip_duration[train_data['trip_duration'] < 3440], kde=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "In the competition, the quality metric was RMSLE:\n",
+    "$$\\text{RMSLE}(X, y, a) = \\sqrt{\\frac{1}{\\ell}\\sum_{i=1}^{\\ell} \\big(\\log{(y_i + 1)} - \\log{(a(x_i) + 1)}\\big)^2}$$\n",
+    "\n",
+    "**Question**: *Why do you think the authors of the competition chose RMSLE and not RMSE?*"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "There are several linear regression models in ``sklearn``, but each optimizes mean squared error (MSE) rather than RMSLE. Let's do the following trick: we will not predict the target variable, but its *logarithm*. Denote $\\hat{y}_i = \\log{(y_i + 1)}$ — modified target, а $\\hat{a}(x_i)$ — model forecast, trained on $\\hat{y}_i$, that is logarithm of target. To predict the original value, we can simply take the exponent from our prediction: $a(x_i) = \\exp(\\hat{a}(x_i)) - 1$.\n",
+    "\n",
+    "**Question**: Show that RMSLE optimization for model $a$ is equivalent to MSE optimization for model  $\\hat{a}$.\n",
+    "\n",
+    "**Proof**: ╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "\n",
+    "So, we were able to reduce the RMSLE optimization problem to an MSE optimization problem that we know how to solve! In addition, the target logarithm has another useful property. To see it, add the column ``log_trip_duration`` to our sample (use ``np.log1p``) and draw a histogram of the modified target for the training sample. Delete the column with the old target. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%%time\n",
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "\n",
+    "plt.figure(figsize=(15,10))\n",
+    "train_data['log_trip_duration'] = np.log1p(train_data['trip_duration'].values)\n",
+    "plt.hist(train_data['log_trip_duration'].values, bins=100)\n",
+    "plt.xlabel('log(trip_duration)')\n",
+    "plt.ylabel('number of train records')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "To have some point of reference, let's calculate the value of the metric at the best constant prediction :"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "# time distribution\n",
+    "print(\"Im secunds:\", np.exp(5), np.exp(9))\n",
+    "print(\"In minutes:\", np.exp(5) // 60, np.exp(9) // 60)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# longest trip in hours\n",
+    "train_data['trip_duration'].max() // 3600 "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Part 1. Learn `pickup_datetime` (2 points)\n",
+    "\n",
+    "**Task 2 (0.25 points)**. First, let's see how many trips there were on each of the days. Build a graph of the dependence of the number of trips on the day of the year (for example, you can use  `sns.countplot`):"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from datetime import datetime"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data['dow'] = train_data.pickup_datetime.dt.dayofweek\n",
+    "train_data['month'] = train_data.pickup_datetime.dt.month\n",
+    "train_data['hour'] = train_data.pickup_datetime.dt.hour\n",
+    "train_data['doy'] = train_data.pickup_datetime.dt.dayofyear"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "fig, ax = plt.subplots()\n",
+    "ax = sns.countplot(data=train_data, x='doy')\n",
+    "fig.set_size_inches(18.5, 10.5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: You have probably noticed that there are 2 periods on the graph with abnormally small amounts of trips. Calculate on what dates these downward jumps took place and find information about what was happening in New York these days.\n",
+    "\n",
+    "Draw graphs of the dependence of the number of trips on the day of the week and on the hours per day (use  `sns.relplot`):"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "grouped = train_data.groupby(by='doy').agg({'id':'count'}).reset_index()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import plotly.express as px"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "px.line(grouped, x='doy', y='id')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data[(train_data.doy >22) & (train_data.doy < 25)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data['anomaly'] = train_data.doy.between(23, 24).apply(int)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sum(train_data.anomaly)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 3 (0.5 points)**. Draw on one graph the dependence of the number of trips on the hour in a day for different months (different curves corresponding to different months, paint in different colors, use the `hue` in` sns.relplot`). Similarly, draw the dependence of the number of trips on the hour in a day for different days of the week. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "grouped = train_data.groupby(by='dow').agg({'id':'count'}).reset_index()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sns.relplot(data=grouped, x='dow', y='id')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "px.line(grouped, x='dow', y='id')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "grouped = train_data.groupby(by=['hour']).agg({'id':'count'}).reset_index()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sns.relplot(data=grouped, x='hour', y='id')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "px.line(grouped, x='hour', y='id')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "grouped = train_data.groupby(by=['dow', 'hour']).agg({'id':'count'}).reset_index()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sns.relplot(data=grouped, x='hour', y='id', hue='dow')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "px.line(grouped, x='hour', y='id', color='dow')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data1 = pd.DataFrame({'hour': train_data.hour, 'month': train_data.month, 'trip_duration': train_data['trip_duration']}).groupby([ 'hour', 'month']).sum().reset_index()\n",
+    "sns.relplot(data=data1, x='hour', y='trip_duration', hue=\"month\", kind=\"line\", height=10)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: What conclusions can be drawn based on the graphs above? Are any days of the week highlighted? Months? Times of Day? What is the reason for this?\n",
+    "\n",
+    "**Task 4 (0.5 points)**. Divide the sample into training and test in a ratio of 7:3. Using the training sample, draw a graph of the average logarithm of travel time versus the day of the week. Then do the same, but for an hour in a day and a day in a year. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.model_selection import train_test_split"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "not_use_cols = ['id', 'vendor_id', '']\n",
+    "use_cols = ['passenger_count', 'pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude',\n",
+    "           'store_and_fwd_flag', 'dow', 'doy', 'hour', 'month', 'anomaly', 'trip_duration', 'log_dur']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_data['log_dur'] = np.log(train_data.trip_duration + 1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train, test = train_test_split(train_data[use_cols], test_size=0.3)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "grouped = train.groupby(by='dow').agg({'log_dur':'mean'}).reset_index()\n",
+    "px.line(grouped, x='dow', y='log_dur')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "grouped = train.groupby(by='hour').agg({'log_dur':'mean'}).reset_index()\n",
+    "px.line(grouped, x='hour', y='log_dur')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "grouped = train.groupby(by='doy').agg({'log_dur':'mean'}).reset_index()\n",
+    "px.line(grouped, x='doy', y='log_dur')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: Are the graphs of the target's dependence on the day of the week and on the hour in a day similar to those for the number of trips? Why? What happens to the average target during those two anomalous periods that we saw above? Why it happens? Do you see any trend in the graph of `log_trip_duration` versus the day of the year? "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Add the following tags based on `pickup_datetime`:\n",
+    "1. Day of the week\n",
+    "2. Month\n",
+    "3. Hour\n",
+    "4. Is the period anomalous (two binary signs corresponding to two anomalous periods)\n",
+    "5. Number of the day of the year "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "\n",
+    "df = pd.DataFrame()\n",
+    "df['dayofweek'] = train_data['pickup_datetime'].apply(lambda x: x.dayofweek)\n",
+    "df['month'] = train_data['pickup_datetime'].apply(lambda x: x.month)\n",
+    "df['hour'] = train_data['pickup_datetime'].apply(lambda x: x.hour)\n",
+    "df['dayofyear'] = train_data['pickup_datetime'].apply(lambda x: x.dayofyear)\n",
+    "df['isabnormal'] = 0"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "type(df.month[1])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "anomaly = [23, 24, 25, 150, 151]\n",
+    "df.loc[df['dayofyear'].isin(anomaly), 'isabnormal'] = 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "So, we have already created a number of features.\n",
+    "\n",
+    "**Question**: Which of the signs should be considered as categorical, and which - as numerical? Why? "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 5 (0.75 points)**. Train `Ridge` regression with default parameters by encoding all categorical features with `OneHotEncoder`. Scale numerical features using the `StandardScaler`. Use only the signs that we have highlighted in this part of the assignment. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.preprocessing import StandardScaler\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "d = pd.get_dummies(df['dayofweek'], prefix='day')\n",
+    "m = pd.get_dummies(df['month'], prefix='month')\n",
+    "h = pd.get_dummies(df['hour'], prefix='h')\n",
+    "ab = pd.get_dummies(df['isabnormal'], prefix='abnorm')\n",
+    "\n",
+    "df = pd.concat([d, df, m, h, ab], axis=1)\n",
+    "df.drop(columns=['dayofweek','month', 'hour', 'isabnormal'], inplace=True)\n",
+    "\n",
+    "\n",
+    "scaler = StandardScaler()\n",
+    "df_scaled = pd.DataFrame(scaler.fit_transform(df[['dayofyear']]),columns=['dayofyear'])\n",
+    "df = pd.concat([df, df_scaled], axis=1)\n",
+    "df.drop(columns=['dayofyear'], inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.linear_model import Ridge\n",
+    "from sklearn.metrics import mean_squared_log_error \n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "y = train_data.log_dur"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_train, X_test, y_train, y_test = train_test_split(df, y, test_size=0.3, random_state=42)\n",
+    "\n",
+    "ridge = Ridge()\n",
+    "ridge.fit(X_train, y_train)\n",
+    "\n",
+    "y_pred = ridge.predict(X_test)\n",
+    "np.sqrt(mean_squared_log_error(y_test, y_pred))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Part 2. Studying the coordinates (3 points) \n",
+    "We have already studied the data about the start time of the trip very well, let's now look at the information about the coordinates of the start and end of the trip. We have prepared for you a function that draws the start or end points of the trip on the map. You will find examples of its invocation below. Please note that we are passing only a small piece of data to this function, because otherwise the function will work for a very long time. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def show_circles_on_map(data, latitude_column, longitude_column, color):\n",
+    "    \"\"\"\n",
+    "    The function draws map with circles on it.\n",
+    "    The center of the map is the mean of coordinates passed in data.\n",
+    "    \n",
+    "    data: DataFrame that contains columns latitude_column and longitude_column\n",
+    "    latitude_column: string, the name of column for latitude coordinates\n",
+    "    longitude_column: string, the name of column for longitude coordinates\n",
+    "    color: string, the color of circles to be drawn\n",
+    "    \"\"\"\n",
+    "\n",
+    "    location = (data[latitude_column].mean(), data[longitude_column].mean())\n",
+    "    m = folium.Map(location=location)\n",
+    "\n",
+    "    for _, row in data.iterrows():\n",
+    "        folium.Circle(\n",
+    "            radius=100,\n",
+    "            location=(row[latitude_column], row[longitude_column]),\n",
+    "            color=color,\n",
+    "            fill_color=color,\n",
+    "            fill=True\n",
+    "        ).add_to(m)\n",
+    "\n",
+    "    return m"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2020-09-26T17:05:15.969248Z",
+     "start_time": "2020-09-26T17:05:15.334200Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "show_circles_on_map(train_data.sample(1000), \"pickup_latitude\", \"pickup_longitude\", \"blue\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "ExecuteTime": {
+     "end_time": "2020-09-26T17:05:16.699973Z",
+     "start_time": "2020-09-26T17:05:16.026291Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "show_circles_on_map(test_data.sample(1000), \"dropoff_latitude\", \"dropoff_longitude\", \"red\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: What two points are highlighted on the map? "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 6 (0.75 points)**. As we all remember perfectly , $t = s / v_{\\text{ср}}$ (the time is the distance divide by the speed),therefore, it is obvious that the strongest indication will be the distance to be traveled. We cannot calculate the exact distance that a taxi needs to travel, but we can estimate it by calculating the shortest distance between the points of the beginning and the end of the trip. To correctly calculate the distance between two points on Earth, you can use the `haversine` function. You can also use the code from the first workshop. Calculate the shortest distance for objects and write it down in the `haversine` column: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "!pip install haversine"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from haversine import haversine\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%%\n",
+    "X['haversine'] = X.apply(lambda x: haversine((x['pickup_latitude'], x['pickup_longitude']), (x['dropoff_latitude'], x['dropoff_longitude'])), axis=1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Since we are predicting the logarithm of travel time and want our features to be linear with this target variable, we need to log the distance : $\\log t = \\log s - \\log{v_{\\text{ср}}}$. Write the logarithm of `haversine` in a separate column:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "X['log_haversine'] =  X['haversine'].apply(lambda x: np.log(x + 1e-18))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Let's make sure that the logarithm of the distance correlates better with our target than just the distance: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "print(\"Corr haversine: %f , corr log_haversine: %f\" % (y.corr(X['haversine']), np.log(y).corr(X['log_haversine'])))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 7 (0.75 points)**. Let's examine the average taxi speed. Calculate the average speed for each object in the training set by dividing `haversine` by `trip_duration` and plot its distribution "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "plt.hist(np.array(X['haversine']) / np.array(y), log=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "As you can see from the histogram, for some objects we got a lot higher values of velocities. Draw a histogram for the objects for which the speed value turned out to be reasonable (for example, you can omit the consideration of objects where the speed is greater than a certain quantile): "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "speed = np.array(X['haversine']) / np.array(y)\n",
+    "border = np.percentile(speed, 95)\n",
+    "normal_speed = speed[speed < border] \n",
+    "\n",
+    "plt.hist(normal_speed)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For each pair (day of the week, hour of the day), calculate the median of the speeds. Draw a graph using `sns.heatmap`, where the axes will be the days of the week and the hours, and the value of the function will be the median of the speed "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "def heatmap(X_):\n",
+    "    dw = pd.concat([X_['dayofweek'], X_['hour']], axis=1)\n",
+    "    dw['speed'] = pd.Series(speed)\n",
+    "    \n",
+    "    df = dw.pivot_table(index='dayofweek', columns='hour', values='speed', aggfunc=np.median)\n",
+    "    sns.heatmap(df, annot=False, fmt=\".1f\")\n",
+    "\n",
+    "    plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X['dayofweek'] = X['pickup_datetime'].apply(lambda x: x.dayofweek)\n",
+    "X['hour'] = X['pickup_datetime'].apply(lambda x: x.hour)\n",
+    "\n",
+    "heatmap(X)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Don't forget to remove the speed column from the data!\n",
+    "\n",
+    "**Question**: Why can't the speed value be used during training? "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: Look carefully at the graph and tell me at what points in time the speed is minimal; maximum.\n",
+    "\n",
+    "Create the signs \"the trip is made during the traffic jams\" and \"the trip is made during the free roads\" (of course, they should not depend on the speed!): "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dw = pd.concat([X['dayofweek'], X['hour']], axis=1)\n",
+    "dw['speed'] = pd.Series(speed)\n",
+    "df = dw.pivot_table(index='dayofweek', columns='hour', values='speed', aggfunc=np.median)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "trafficgam = df <= 0.4\n",
+    "\n",
+    "X['is_traficgam'] = X.apply(lambda x: 1 if trafficgam[ [int(x['hour'])][0]][int(x['dayofweek'])] else 0, axis=1)\n",
+    "X['is_not_traficgam'] = X['is_traficgam'].apply(lambda x: (x + 1) % 2)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 8 (0.25 points)**. As noted above, two points are highlighted on the map far from Manhattan. For each of them, add two features to the sample: whether the trip began in it and whether it ended in it. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "X['start'] = X['pickup_longitude'].apply(lambda x: 1 if x < -120  else 0)\n",
+    "X['end'] = X['dropoff_longitude'].apply(lambda x: 1 if x < -120  else 0)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For each of the created features, draw a \"box with a mustache\" (`sns.boxplot`) of the distribution of the logarithm of the trip time "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "col = ['is_traficgam', 'is_not_traficgam', 'start', 'end']\n",
+    "\n",
+    "sns.boxplot(x=X[col[0]], y=np.log(y))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sns.boxplot(x=X[col[1]], y=np.log(y))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: How do you think (looking at the charts) these features turned out good? "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<img src=\"https://www.dropbox.com/s/xson9nukz5hba7c/map.png?raw=1\" align=\"right\" width=\"20%\" style=\"margin-left: 20px; margin-bottom: 20px\">\n",
+    "\n",
+    "**Task 9 (1 point)**. Now we almost never use the coordinates themselves. There are several reasons for this: separately considering latitude and longitude does not make much sense, it is worth considering them together. Secondly, it is clear that the relationship between our target and coordinates is not linear. To somehow use the coordinates, you can resort to the following trick: frame the area with the most trips with a rectangle (as in the picture). Let's break this rectangle into cells. To each point we associate the number of its cell, and to those points that did not fall into any of the cells, we associate the value -1.\n",
+    "\n",
+    "Write a transformer that first breaks the area shown in the figure into cells, and then creates two features: the cell number in which the trip began and the cell number in which the trip ended. Choose the number of rows and columns yourself.\n",
+    "\n",
+    "Please note that all calculations must be vectorized, the transformer must not modify the inplace sample passed to it, and all necessary statistics (if they are suddenly needed) must be read only from the training sample in the `fit` method: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.base import BaseEstimator, TransformerMixin\n",
+    "\n",
+    "class MapGridTransformer(BaseEstimator, TransformerMixin):\n",
+    "    #╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "from open-source [here](https://ru.stackoverflow.com/questions/1161594/%D0%A0%D0%B0%D0%B7%D0%B1%D0%B8%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BE%D0%B1%D0%BB%D0%B0%D1%81%D1%82%D0%B8-%D0%BD%D0%B0-%D1%8F%D1%87%D0%B5%D0%B9%D0%BA%D0%B8-%D0%B8-%D0%BF%D1%80%D0%B8%D1%81%D0%B2%D0%BE%D0%B5%D0%BD%D0%B8%D0%B5-%D0%BC%D0%B5%D1%82%D0%BE%D0%BA-%D1%81-%D0%BD%D0%B0%D1%87%D0%B0%D0%BB%D0%BE%D0%BC-%D0%B8-%D0%BA%D0%BE%D0%BD%D1%86%D0%BE%D0%BC)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class MapGridTransformer(BaseEstimator, TransformerMixin):\n",
+    "\n",
+    "    def __init__(self,loc, col, row):\n",
+    "        self.location_mh = loc\n",
+    "        self.col = col\n",
+    "        self.row = row\n",
+    "\n",
+    "    def create_box_(self, loc):\n",
+    "        polygon_loc = [\n",
+    "                    [(loc[0] - self.walls[0] / 2), loc[1] - self.walls[1] / 2],\n",
+    "                    [loc[0] + self.walls[0] / 2, loc[1] - self.walls[1] / 2],\n",
+    "                    [loc[0] + self.walls[0] / 2, loc[1] + self.walls[1] / 2],\n",
+    "                    [loc[0] - self.walls[0] / 2, loc[1] + self.walls[1] / 2]\n",
+    "                  ]\n",
+    "        return polygon_loc\n",
+    "\n",
+    "    def show_map(self):\n",
+    "        self.walls, self.circles_loc = self._fit()\n",
+    "        _map = Map(center=((self.location_mh[:, 0]).mean(), (self.location_mh[:, 1]).mean()),\n",
+    "                   zoom=11, basemap=basemaps.Esri.NatGeoWorldMap)\n",
+    "\n",
+    "        circles = [(CircleMarker(location=(lat, long), fill_color='red',\n",
+    "                                 fill_opacity=1, radius=5, stroke=False)) for lat, long in self.circles_loc]\n",
+    "        polygons = [(Polygon(locations=self.create_box_(loc), fill_opacity=0)) for loc in self.circles_loc]\n",
+    "\n",
+    "        circles_layer = LayerGroup(layers=circles)\n",
+    "        polygon_layer = LayerGroup(layers=polygons)\n",
+    "\n",
+    "        _map.add_layer(circles_layer)\n",
+    "        _map.add_layer(polygon_layer)\n",
+    "\n",
+    "        return _map\n",
+    "\n",
+    "    def _fit(self):\n",
+    "        self.walls = [(self.location_mh[:, 0].max() - self.location_mh[:, 0].min()) / self.col, \\\n",
+    "              (self.location_mh[:, 1].max() - self.location_mh[:, 1].min()) / self.row]\n",
+    "\n",
+    "        self.circles_loc = np.array([(((self.location_mh[:, 0].min() + i * (self.walls[0] / 2))), \\\n",
+    "                               (self.location_mh[:, 1].min() + j * (self.walls[1] / 2)) ) \\\n",
+    "                            for i in range(1, (self.col) * 2, 2) for j in range(1, (self.row) * 2, 2)])\n",
+    "\n",
+    "        return self.walls, self.circles_loc\n",
+    "\n",
+    "\n",
+    "    def _transform(self, X):\n",
+    "        _, self.circles_loc = self._fit()\n",
+    "        circles_dict = {ind:loc for ind, loc in enumerate(self.circles_loc)}\n",
+    "        X['start_circle'] = ((X['pickup_latitude'] > self.circles_loc[:, 0].min()) & (X['pickup_latitude'] < self.circles_loc[:, 0].max()) & \\\n",
+    "                             (X['pickup_longitude'] > self.circles_loc[:, 1].min()) & (X['pickup_longitude'] < self.circles_loc[:, 1].max())).map({True: 0, False : -1})\n",
+    "        X['end_circle'] = ((X['dropoff_latitude'] > self.circles_loc[:, 0].min()) & (X['dropoff_latitude'] < self.circles_loc[:, 0].max()) & \\\n",
+    "                     (X['dropoff_longitude'] > self.circles_loc[:, 1].min()) & (X['dropoff_longitude'] < self.circles_loc[:, 1].max())).map({True: 0, False : -1})\n",
+    "        for index in X.index:\n",
+    "            row = X.loc[index, ['pickup_latitude', 'pickup_longitude', 'dropoff_latitude','dropoff_longitude']]\n",
+    "            for key, value in circles_dict.items():\n",
+    "                box = np.array(self.create_box_(value))\n",
+    "                if ((box[:, 0].min() < row[0]) & (row[0] < box[:, 0].max())) & \\\n",
+    "                    ((box[:, 1].min() < row[1]) & (row[1] < box[:, 1].max())):\n",
+    "                    X.loc[index, 'start_circle'] = key\n",
+    "                if ((box[:, 0].min() < row[2]) & (row[2] < box[:, 0].max())) & \\\n",
+    "                    ((box[:, 1].min() < row[3]) & (row[3] < box[:, 1].max())): \n",
+    "                    X.loc[index, 'end_circle'] = key\n",
+    "\n",
+    "        return X"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 10 (0.25 points)**. Train the `Ridge` regression with standard parameters on the features that we have identified so far. Encode categorical tags through one-hot coding, scale numeric tags. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Part 3. Examining the remaining features (1 point)\n",
+    "\n",
+    "**Task 11 (0.75 points)**. We still have 3 traits that we have not examined: `vendor_id`, `passenger_count` and `store_and_fwd_flag`.\n",
+    "\n",
+    "**Question**: Consider why each of these features could be potentially useful.\n",
+    "\n",
+    "Count how many unique values each of these features have:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "print('vendor_id')\n",
+    "print(pd.unique(X['vendor_id']))\n",
+    "print(len(pd.unique(X['vendor_id'])))\n",
+    "\n",
+    "print('passenger_count')\n",
+    "print(pd.unique(X['passenger_count']))\n",
+    "print(len(pd.unique(X['passenger_count'])))\n",
+    "\n",
+    "print('store_and_fwd_flag')\n",
+    "print(pd.unique(X['store_and_fwd_flag']))\n",
+    "print(len(pd.unique(X['store_and_fwd_flag'])))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Build \"boxes with whiskers\" of distributions of the logarithm of the trip time depending on the values of each of the features "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "sns.boxplot(x=X['vendor_id'], y=np.log(y))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sns.boxplot(x=X['passenger_count'], y=np.log(y))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sns.boxplot(x=X['store_and_fwd_flag'], y=np.log(y))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Transform the features `vendor_id` and `store_and_fwd_flag` into values $\\{0; 1\\}$ "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "X['vendor_id'] = X['vendor_id'].apply(lambda x: x - 1)\n",
+    "X['store_and_fwd_flag'] = X['store_and_fwd_flag'].apply(lambda x: 0 if x=='N' else 1)\n",
+    "\n",
+    "X.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Question**: Based on the charts above, do you think these features will be strong? "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 12 (0.25 points)**. Test your assumptions by training the model on these three features as well. Train `Ridge` regression with standard parameters. Encode categorical features with one-hot coding, and scale numerical ones. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ\n",
+    "fl = pd.get_dummies(X['store_and_fwd_flag'], prefix='flag')\n",
+    "v_id = pd.get_dummies(X['vendor_id'], prefix='v_id')\n",
+    "count = pd.get_dummies(X['passenger_count'], prefix='pas_count')\n",
+    "\n",
+    "feat = pd.concat([fl, v_id, count], axis=1)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "all_feature = #╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "feat = pd.concat([feat, all_feature],axis=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_train, X_test, y_train, y_test = train_test_split(feat, Y, test_size=0.3, random_state=42)\n",
+    "ridge_model3 = Ridge()\n",
+    "ridge_model3.fit(X_train, y_train)\n",
+    "y_predict = np.array(np.abs(ridge_model3.predict(X_test)))\n",
+    "print('RMSLE = ', np.sqrt(mean_squared_log_error(y_test, y_predict)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "feat = pd.concat([fl, all_feature], axis=1)\n",
+    "X_train, X_test, y_train, y_test = train_test_split(feat, Y, test_size=0.3, random_state=42)\n",
+    "ridge_model3 = Ridge()\n",
+    "ridge_model3.fit(X_train, y_train)\n",
+    "y_predict = np.array(np.abs(ridge_model3.predict(X_test)))\n",
+    "print('RMSLE = ', np.sqrt(mean_squared_log_error(y_test, y_predict)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "feat = pd.concat([v_id, all_feature], axis=1)\n",
+    "X_train, X_test, y_train, y_test = train_test_split(feat, Y, test_size=0.3, random_state=42)\n",
+    "ridge_model3 = Ridge()\n",
+    "ridge_model3.fit(X_train, y_train)\n",
+    "y_predict = np.array(np.abs(ridge_model3.predict(X_test)))\n",
+    "print('RMSLE = ', np.sqrt(mean_squared_log_error(y_test, y_predict)))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "feat = pd.concat([count, all_feature], axis=1)\n",
+    "X_train, X_test, y_train, y_test = train_test_split(feat, Y, test_size=0.3, random_state=42)\n",
+    "ridge_model3 = Ridge()\n",
+    "ridge_model3.fit(X_train, y_train)\n",
+    "y_predict = np.array(np.abs(ridge_model3.predict(X_test)))\n",
+    "print('RMSLE = ', np.sqrt(mean_squared_log_error(y_test, y_predict)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "If the features have not yielded any measurable improvement in the metric, they can be thrown out of the data. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Part 4. Improve the model (3 points)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 13 (1 point)**. Our data contains atypical objects: with an abnormally short travel time, with a very long distance traveled, or very large regression residuals. In this task, it is proposed to exclude such objects from the training sample. To do this, draw histograms of the distribution of the quantities mentioned above, select objects that can be called outliers, and clear the training sample from them.\n",
+    "\n",
+    "Note that although these objects look like outliers, the test sample will also most likely contain objects with the same strange values of the target variable and/or features. Therefore, it is possible that cleaning the training sample will lead to a deterioration in the quality on the test. However, it is still better to remove outliers from training to make the model more intelligent and interpretable. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now we have a lot of categorical features. The categorical features may contain rare categories, which is usually bad: the model is heavily retrained on such examples. Try to combine rare categories into one. Naturally, this should only be done for really rare categories. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Train the model on the cleaned data and calculate the quality on the test sample. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 14 (1 point)**. After OneHot coding, the number of features in our dataset increases dramatically. Count the number of features before and after the coding of categorical features. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Try to train not `Ridge`- but `Lasso`-regression. Which method is better? "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Divide the training set into training and validation in a ratio of 8:2. Using the validation sample, select the optimal values of the regularization parameter (on a logarithmic grid) for `Ridge` and `Lasso`, measure the quality of the best obtained model on the test sample. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For each iterated `alpha` for Lasso, count the number of zero weights in the model and plot it versus `alpha`. How much will we have to lose in quality if we want to get rid of at least half of the features using Lasso? "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<img src=\"https://www.dropbox.com/s/wp4jj0599np17lh/map_direction.png?raw=1\" width=\"20%\" align=\"right\" style=\"margin-left: 20px\">\n",
+    "\n",
+    "**Task 15 (1 point)**. It is often useful to use feature interactions, that is, build new features based on existing ones. Above, we divided the map of Manhattan into cells and came up with signs \"from which cell the trip began\" and \"in which cell the trip ended\".\n",
+    "\n",
+    "Let's try to do the following: count how many times each possible pair of these signs occurs in our dataset and select the 100 most frequent pairs. Let's encode trips with these frequent pairs as a categorical feature, and assign -1 to the rest of the objects. It turns out that we have coded from where and where the taxi was supposed to go.\n",
+    "\n",
+    "You can also think of some other way to make signs about the route. If these signs give a good increase in quality, then additional bonus points can be given for this.\n",
+    "\n",
+    "**Question**: Why is such a feature potentially useful? Why can't the linear model independently \"pull out\" this information, because it has at its disposal the signs \"from which cell the trip started\" and \"in which cell the trip ended\"? "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Re-train the model (`Ridge`, if it gave a higher quality in previous experiments, and `Lasso` otherwise) on the new data and calculate the quality on the test sample: "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 16 (bonus, 1 point)**. Where, if not for our task, to calculate the Manhattan distance?\n",
+    "\n",
+    "**Question**: *Find what the Manhattan distance is and why it is called that. How can it help us?*\n",
+    "\n",
+    "Enter the coordinate system on our map so that the axes are parallel to the streets of Manhattan, and first add the Manhattan distance between departure point and destination attribute to the data, and then add the logarithm of this attribute. Calculate the correlation between your new trait and target; between ``log_haversine`` and target. In which case is the correlation greater?\n",
+    "\n",
+    "Draw a map showing the selected axes. So that we can check your work, please make a screen of this map and attach a picture (if we open your notebook, the widgets will not be displayed). "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Re-train the model on the new data and calculate the quality on the test sample. \n",
+    "\n",
+    "*Has it gotten better? Explain the result obtained.*"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Task 17 (bonus, 2 points)**. Implement a transformer that builds a map partition on a hexagonal lattice using the library  [H3](https://github.com/uber/h3-py) and calculates features based on such a partition.\n",
+    "\n",
+    "Features can be very different: the distance between the start and finish points, counted in the number of hexagons; statistics on the number of trips and on their duration in adjacent hexagons.\n",
+    "\n",
+    "Important: the performance of the library significantly depends on the number of hexagons on the map (determined by the resolution parameter). Choose a resolution so that your code will run in a reasonable amount of time.\n",
+    "\n",
+    "Measure the quality after adding new features. For improving the error functionality, 0.5 bonus points will be given for every 0.005 on the test sample. You can get up to 2 bonus points for this task. \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#╰( ͡° ͜ʖ ͡° )つ──☆*:・ﾟ"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Insert a picture describing your experience with this home-work."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.4"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
